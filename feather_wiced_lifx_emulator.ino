@@ -170,6 +170,8 @@ void loop()
     isSlowLoop = true;
     lastSlowLoop = millis();
     //debugPrint("Slow Loop:" + String(Feather.getUtcTime()));
+    byte timestamp[8];
+    //setTimeStamp(&timestamp);
   }
   if(isSlowLoop){
     if(Feather.connected() == false){
@@ -562,7 +564,7 @@ void handleRequest(LifxPacket &request) {
       // send the light's state
       debugPrint("Received GET_LIGHT_STATE");
       response.packet_type = LIGHT_STATUS;
-      response.protocol = LifxProtocol_AllBulbsResponse;
+      response.protocol = LifxProtocol_BulbCommand;
       byte StateData[] = { 
         lowByte(hue),  //hue
         highByte(hue), //hue
@@ -663,7 +665,7 @@ void handleRequest(LifxPacket &request) {
 
       // respond to both get and set commands
       response.packet_type = POWER_STATE;
-      response.protocol = LifxProtocol_AllBulbsResponse;
+      response.protocol = LifxProtocol_BulbCommand;
       byte PowerData[] = { 
         lowByte(power_status),
         highByte(power_status)
@@ -674,7 +676,43 @@ void handleRequest(LifxPacket &request) {
       sendPacket(response);
     } 
     break;
+  case SET_WAVEFORM:
+  case SET_WAVEFORM_OPTIONAL:
+  {
+      uint8_t transient;
+      
+      transient = request.data[1];
+      // set the light colors
+      hue = word(request.data[3], request.data[2]);
+      sat = word(request.data[5], request.data[4]);
+      bri = word(request.data[7], request.data[6]);
+      kel = word(request.data[9], request.data[8]);
+      for (int i = 0; i < 4; i++)
+      {
+         duration += ((long) request.data[i+10] & 0xffL) << (8 * i);
+      }
+      if(request.packet_type == SET_WAVEFORM) {
+        debugPrint("Received SET_WAVEFORM");
+        setLight();
+      }if(request.packet_type == SET_WAVEFORM_OPTIONAL) {
+        debugPrint("Received SET_WAVEFORM_OPTIONAL");
+        
+        setLight();
+      }
 
+//      // respond to both get and set commands
+//      response.packet_type = POWER_STATE;
+//      response.protocol = LifxProtocol_BulbCommand;
+//      byte PowerData[] = { 
+//        lowByte(power_status),
+//        highByte(power_status)
+//        };
+//
+//      memcpy(response.data, PowerData, sizeof(PowerData));
+//      response.data_size = sizeof(PowerData);
+//      sendPacket(response);
+    } 
+    break;
 
   case SET_BULB_LABEL: 
   case GET_BULB_LABEL: 
@@ -695,7 +733,7 @@ void handleRequest(LifxPacket &request) {
 
       // respond to both get and set commands
       response.packet_type = BULB_LABEL;
-      response.protocol = LifxProtocol_AllBulbsResponse;
+      response.protocol = LifxProtocol_BulbCommand;
       
       memcpy(response.data, bulbLabel, sizeof(bulbLabel));
       response.data_size = sizeof(bulbLabel);
@@ -722,7 +760,7 @@ void handleRequest(LifxPacket &request) {
 
       // respond to both get and set commands
       response.packet_type = BULB_TAGS;
-      response.protocol = LifxProtocol_AllBulbsResponse;
+      response.protocol = LifxProtocol_BulbCommand;
       memcpy(response.data, bulbTags, sizeof(bulbTags));
       response.data_size = sizeof(bulbTags);
       sendPacket(response);
@@ -749,7 +787,7 @@ void handleRequest(LifxPacket &request) {
 
       // respond to both get and set commands
       response.packet_type = BULB_TAG_LABELS;
-      response.protocol = LifxProtocol_AllBulbsResponse;
+      response.protocol = LifxProtocol_BulbCommand;
       memcpy(response.data, bulbTagLabels, sizeof(bulbTagLabels));
       response.data_size = sizeof(bulbTagLabels);
       sendPacket(response);
@@ -759,10 +797,9 @@ void handleRequest(LifxPacket &request) {
 
   case GET_VERSION_STATE: 
     {
-      debugPrint("Received GET_VERSION_STATE");
       // respond to get command
       response.packet_type = VERSION_STATE;
-      response.protocol = LifxProtocol_AllBulbsResponse;
+      response.protocol = LifxProtocol_BulbCommand;
       byte VersionData[] = { 
         lowByte(LifxBulbVendor),
         highByte(LifxBulbVendor),
@@ -781,7 +818,6 @@ void handleRequest(LifxPacket &request) {
       memcpy(response.data, VersionData, sizeof(VersionData));
       response.data_size = sizeof(VersionData);
       sendPacket(response);
-      
       /*
       // respond again to get command (real bulbs respond twice, slightly diff data (see below)
       response.packet_type = VERSION_STATE;
@@ -806,29 +842,56 @@ void handleRequest(LifxPacket &request) {
       */
     } 
     break;
-
-
-  case GET_MESH_FIRMWARE_STATE: 
+case GET_UNKNOWN1: 
     {
-      debugPrint("Received GET_MESH_FIRMWARE_STATE");
       // respond to get command
-      response.packet_type = MESH_FIRMWARE_STATE;
-      response.protocol = LifxProtocol_AllBulbsResponse;
+      response.packet_type = STATE_UNKNOWN1;
+      response.protocol = LifxProtocol_BulbCommand;
+      byte Unknown1Data[] = { 
+        0x7b, 0xc6, 0xbc, 0x25, 0x62, 0x22, 0x48, 0xdb,
+        0xb9, 0x1e, 0xd8, 0x5e, 0x80, 0x88, 0xa3, 0x8a,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x0a, 0xc0, 0x6c, 0x41, 0xf4, 0x03, 0x15 
+        };
+      memcpy(response.data, Unknown1Data, sizeof(Unknown1Data));
+      response.data_size = sizeof(Unknown1Data);
+      sendPacket(response);
+    }
+    break;
+
+  case GET_HOSTFIRMWARE: 
+    {
+      debugPrint("Received GET_HOSTFIRMWARE");
+      // respond to get command
+      response.packet_type = STATE_HOSTFIRMWARE;
+      response.protocol = LifxProtocol_BulbCommand;
       // timestamp data comes from observed packet from a LIFX v1.5 bulb
+//      byte MeshVersionData[] = { 
+//        0x00, 0x2e, 0xc3, 0x8b, 0xef, 0x30, 0x86, 0x13, //build timestamp
+//        0xe0, 0x25, 0x76, 0x45, 0x69, 0x81, 0x8b, 0x13, //install timestamp
+//        lowByte(LifxFirmwareVersionMinor),
+//        highByte(LifxFirmwareVersionMinor),
+//        lowByte(LifxFirmwareVersionMajor),
+//        highByte(LifxFirmwareVersionMajor)
+//        };
+        // Data From LIFX a19
       byte MeshVersionData[] = { 
-        0x00, 0x2e, 0xc3, 0x8b, 0xef, 0x30, 0x86, 0x13, //build timestamp
-        0xe0, 0x25, 0x76, 0x45, 0x69, 0x81, 0x8b, 0x13, //install timestamp
+        0x00, 0x20, 0x67, 0xf6, 0x4c, 0xae, 0xe5, 0x14, //build timestamp
+        0x00, 0x20, 0x67, 0xf6, 0x4c, 0xae, 0xe5, 0x14, //install timestamp
         lowByte(LifxFirmwareVersionMinor),
         highByte(LifxFirmwareVersionMinor),
         lowByte(LifxFirmwareVersionMajor),
         highByte(LifxFirmwareVersionMajor)
         };
-
       memcpy(response.data, MeshVersionData, sizeof(MeshVersionData));
       response.data_size = sizeof(MeshVersionData);
       sendPacket(response);
     } 
     break;
+     
 
 
   case GET_WIFI_FIRMWARE_STATE: 
@@ -836,19 +899,73 @@ void handleRequest(LifxPacket &request) {
       debugPrint("Received GET_WIFI_FIRMWARE_STATE");
       // respond to get command
       response.packet_type = WIFI_FIRMWARE_STATE;
-      response.protocol = LifxProtocol_AllBulbsResponse;
+      response.protocol = LifxProtocol_BulbCommand;
       // timestamp data comes from observed packet from a LIFX v1.5 bulb
+//      byte WifiVersionData[] = { 
+//        0x00, 0xc8, 0x5e, 0x31, 0x99, 0x51, 0x86, 0x13, //build timestamp
+//        0xc0, 0x0c, 0x07, 0x00, 0x48, 0x46, 0xd9, 0x43, //install timestamp
+//        lowByte(LifxFirmwareVersionMinor),
+//        highByte(LifxFirmwareVersionMinor),
+//        lowByte(LifxFirmwareVersionMajor),
+//        highByte(LifxFirmwareVersionMajor)
+//        };
+      // LIFX A19 v2  All Zeros
       byte WifiVersionData[] = { 
-        0x00, 0xc8, 0x5e, 0x31, 0x99, 0x51, 0x86, 0x13, //build timestamp
-        0xc0, 0x0c, 0x07, 0x00, 0x48, 0x46, 0xd9, 0x43, //install timestamp
-        lowByte(LifxFirmwareVersionMinor),
-        highByte(LifxFirmwareVersionMinor),
-        lowByte(LifxFirmwareVersionMajor),
-        highByte(LifxFirmwareVersionMajor)
-        };
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //build timestamp
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //install timestamp
+        0x00, 0x00, 0x00, 0x00
+      };
 
+      
       memcpy(response.data, WifiVersionData, sizeof(WifiVersionData));
       response.data_size = sizeof(WifiVersionData);
+      sendPacket(response);
+    } 
+    break;
+
+   
+    break;
+    case GET_LOCATION: 
+    {
+      debugPrint("Received GET_LOCATION");
+      // respond to get command
+      response.packet_type = STATE_LOCATION;
+      response.protocol = LifxProtocol_BulbCommand;
+      // timestamp data needs to use the setTimeStamp function
+      byte LocationData[] = { 
+        0xef, 0xc8, 0x5e, 0x31, 0x99, 0x51, 0x86, 0x13, 
+        0xc0, 0x0c, 0x07, 0x00, 0x48, 0x46, 0xd9, 0x43, //LocationGuid
+        0x4d, 0x79, 0x20, 0x48, 0x6f, 0x6d, 0x65, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //Location Lable "My Home"
+        0x00, 0xa0, 0x66, 0x66, 0x41, 0xf4, 0x03, 0x15,   //Updated At 00 a0 66 66 41 f4 03 15
+        };
+
+      memcpy(response.data, LocationData, sizeof(LocationData));
+      response.data_size = sizeof(LocationData);
+      sendPacket(response);
+    } 
+    break;
+    case GET_GROUP: 
+    {
+      debugPrint("Received GET_GROUP");
+      // respond to get command
+      response.packet_type = STATE_GROUP;
+      response.protocol = LifxProtocol_BulbCommand;
+      // timestamp data needs to use the setTimeStamp function
+      byte GroupData[] = { 
+        0xef, 0xc8, 0x5e, 0x31, 0x99, 0x51, 0x86, 0x13, 
+        0xc0, 0x0c, 0x07, 0x00, 0x48, 0x46, 0xd9, 0x43, //GroupGuid
+        0x4d, 0x79, 0x20, 0x48, 0x6f, 0x6d, 0x65, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //Group Lable "My Home"
+        0x00, 0xa0, 0x66, 0x66, 0x41, 0xf4, 0x03, 0x15,   //Updated At 00 a0 66 66 41 f4 03 15
+        };
+
+      memcpy(response.data, GroupData, sizeof(GroupData));
+      response.data_size = sizeof(GroupData);
       sendPacket(response);
     } 
     break;
@@ -866,6 +983,26 @@ void handleRequest(LifxPacket &request) {
     saveConfig();
     blnSaveConfig = false;
   }
+}
+
+void setTimeStamp(byte *timestamp){
+  uint32_t myseconds = Feather.getUtcTime();
+  iso8601_time_t mytime;
+  Feather.getISO8601Time(&mytime);
+  uint32_t decseconds = atoi( mytime.sub_second);
+  uint64_t myNanos = myseconds * 1000000000 + (decseconds * 1000);
+  debugPrint("timestamp: " + myNanos);
+  for(int i = 0; i < 8; i++){
+    timestamp[i] = (myNanos >> (i * 8)) & 0xFF;
+    if(DEBUG){
+      Serial.print(timestamp[i],HEX);
+      Serial.print(":");
+    }
+  }
+  if(DEBUG){
+      Serial.println(" setTimeStamp");
+  }
+  
 }
 
 void sendPacket(LifxPacket &pkt) {

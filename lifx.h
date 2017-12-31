@@ -30,8 +30,8 @@ const unsigned int LifxBulbTagLabelsLength = 32;
 const unsigned int LifxBulbVendor = 1;
 const unsigned int LifxBulbProduct = 1;
 const unsigned int LifxBulbVersion = 1;
-const unsigned int LifxFirmwareVersionMajor = 1;
-const unsigned int LifxFirmwareVersionMinor = 5;
+const unsigned int LifxFirmwareVersionMajor = 0x02;
+const unsigned int LifxFirmwareVersionMinor = 0x45;
 
 const byte SERVICE_UDP = 0x01;
 const byte SERVICE_TCP = 0x02;
@@ -39,6 +39,9 @@ const byte SERVICE_TCP = 0x02;
 // packet types
 const byte GET_PAN_GATEWAY = 0x02;
 const byte PAN_GATEWAY = 0x03;
+
+const byte GET_HOSTFIRMWARE = 0x0E;
+const byte STATE_HOSTFIRMWARE = 0x0F;
 
 const byte GET_WIFI_FIRMWARE_STATE = 0x12;
 const byte WIFI_FIRMWARE_STATE = 0x13;
@@ -59,7 +62,14 @@ const byte GET_LOCATION = 0x30;  //Need To Implement
 const byte SET_LOCATION = 0x31;  //Need To Implement
 const byte STATE_LOCATION = 0x32;  //Need To Implement
 
-//const byte STATE_LOCATION = 0x31;  //Need To Implement
+const byte GET_GROUP = 0x33;  //Need To Implement
+const byte SET_GROUP = 0x34;  //Need To Implement
+const byte STATE_GROUP = 0x35;  //Need To Implement
+
+const byte GET_UNKNOWN1 = 0x36;  //Undocument
+const byte SET_UNKNOWN1 = 0x37;  //Undocument
+const byte STATE_UNKNOWN1 = 0x38;  //Undocument
+
 
 const byte GET_BULB_TAGS = 0x1a;
 const byte SET_BULB_TAGS = 0x1b;
@@ -73,8 +83,8 @@ const byte GET_LIGHT_STATE = 0x65;
 const byte SET_LIGHT_STATE = 0x66;
 const byte LIGHT_STATUS = 0x6b;
 
-const byte GET_MESH_FIRMWARE_STATE = 0x0e;
-const byte MESH_FIRMWARE_STATE = 0x0f;
+const byte SET_WAVEFORM = 0x67;
+const byte SET_WAVEFORM_OPTIONAL = 0x77;
 
 
 // helpers
